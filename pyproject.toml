@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "relay-audit-lite"
+version = "0.1.0"
+description = "Reproducible, local-first capability audits for LLM API relays"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Ethan Zhou"}]
+readme = "README.md"
+dependencies = []
+
+[project.scripts]
+relay-audit = "relay_audit.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["relay_audit*"]

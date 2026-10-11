@@ -1,0 +1,31 @@
+{
+  "seed": 20261011,
+  "variants": 3,
+  "max_requests": 120,
+  "timeout_seconds": 30,
+  "max_wall_seconds": 300,
+  "endpoints": [
+    {
+      "name": "trusted_reference",
+      "role": "reference",
+      "protocol": "chat_completions",
+      "url": "https://reference.example.invalid/v1/chat/completions",
+      "key_env": "REFERENCE_AUDIT_KEY",
+      "model": "REPLACE_WITH_SNAPSHOT_ID",
+      "output_limit": 512,
+      "limit_field": "max_completion_tokens",
+      "parameters": {}
+    },
+    {
+      "name": "relay_candidate",
+      "role": "target",
+      "protocol": "chat_completions",
+      "url": "https://relay.example.invalid/v1/chat/completions",
+      "key_env": "RELAY_AUDIT_KEY",
+      "model": "REPLACE_WITH_EQUIVALENT_SNAPSHOT_OR_ALIAS",
+      "output_limit": 512,
+      "limit_field": "max_completion_tokens",
+      "parameters": {}
+    }
+  ]
+}

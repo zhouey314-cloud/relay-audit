@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "run_status": "complete",
+  "limitation": "Capability evidence only. Model identity and operator intent are NOT verified. Small synthetic suites can saturate and can be recognized by a relay.",
+  "endpoint_summaries": {
+    "reference_demo": {
+      "attempts": 27,
+      "graded": 27,
+      "passes": 27,
+      "errors": {},
+      "median_latency_ms": 220,
+      "reported_models_unverified": [
+        "claimed-model-demo"
+      ],
+      "categories": {
+        "code_tracing": {
+          "passes": 3,
+          "graded": 3
+        },
+        "context_retrieval": {
+          "passes": 9,
+          "graded": 9
+        },
+        "instruction_following": {
+          "passes": 3,
+          "graded": 3
+        },
+        "reasoning": {
+          "passes": 6,
+          "graded": 6
+        },
+        "structured_output": {
+          "passes": 3,
+          "graded": 3
+        },
+        "tool_calling": {
+          "passes": 3,
+          "graded": 3
+        }
+      }
+    },
+    "relay_demo": {
+      "attempts": 27,
+      "graded": 26,
+      "passes": 13,
+      "errors": {
+        "http_error": 1
+      },
+      "median_latency_ms": 90,
+      "reported_models_unverified": [
+        "claimed-model-demo"
+      ],
+      "categories": {
+        "code_tracing": {
+          "passes": 1,
+          "graded": 3
+        },
+        "context_retrieval": {
+          "passes": 0,
+          "graded": 9
+        },
+        "instruction_following": {
+          "passes": 3,
+          "graded": 3
+        },
+        "reasoning": {
+          "passes": 5,
+          "graded": 6
+        },
+        "structured_output": {
+          "passes": 2,
+          "graded": 3
+        },
+        "tool_calling": {
+          "passes": 2,
+          "graded": 2
+        }
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "target": "relay_demo",
+      "reference": "reference_demo",
+      "paired_graded": 26,
+      "declared_conditions_match": true,
+      "snapshot_equivalence": "user_declared_not_independently_verified",
+      "pass_rate_delta_pp": -50.0,
+      "interpretation": "descriptive_only",
+      "identity_verdict": "not_verified"
+    }
+  ],
+  "statistics_note": "Counts and paired deltas are descriptive. No calibrated false-positive rate, p-value, dilution percentage, or authenticity score is claimed."
+}

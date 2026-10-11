@@ -1,0 +1,19 @@
+{
+  "seed": 20261011,
+  "variants": 3,
+  "max_requests": 120,
+  "timeout_seconds": 30,
+  "max_wall_seconds": 300,
+  "endpoints": [
+    {
+      "name": "native_relay",
+      "role": "target",
+      "protocol": "anthropic_messages",
+      "url": "https://relay.example.invalid/v1/messages",
+      "key_env": "RELAY_AUDIT_KEY",
+      "model": "REPLACE_WITH_MODEL_SNAPSHOT",
+      "output_limit": 512,
+      "parameters": {}
+    }
+  ]
+}

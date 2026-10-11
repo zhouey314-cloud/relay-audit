@@ -1,0 +1,43 @@
+{
+  "tool_version": "0.1.0",
+  "probe_version": "synthetic-v1",
+  "started_at_utc": "2026-10-11T02:07:30.332321+00:00",
+  "synthetic": true,
+  "config": {
+    "seed": 20261011,
+    "variants": 3,
+    "max_requests": 120,
+    "timeout_seconds": 30,
+    "max_wall_seconds": 300,
+    "families": null,
+    "endpoints": [
+      {
+        "name": "reference_demo",
+        "role": "reference",
+        "model": "claimed-model-demo",
+        "protocol": "mock",
+        "output_limit": 512,
+        "limit_field": "max_tokens",
+        "parameters": {}
+      },
+      {
+        "name": "relay_demo",
+        "role": "target",
+        "model": "claimed-model-demo",
+        "protocol": "mock",
+        "output_limit": 512,
+        "limit_field": "max_tokens",
+        "parameters": {}
+      }
+    ]
+  },
+  "plan": {
+    "planned_requests": 54,
+    "probe_count_per_endpoint": 27,
+    "input_characters_all_requests": 138752,
+    "sum_requested_output_caps": 27648,
+    "billing_note": "Character counts are not token counts. Output caps are not a monetary spending cap. Provider input, reasoning, caching and pricing rules affect the bill."
+  },
+  "ordering": "seeded_task_shuffle_rotating_endpoints",
+  "response_storage": "hashes_only"
+}

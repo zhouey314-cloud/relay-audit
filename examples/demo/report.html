@@ -1,0 +1,28 @@
+<!doctype html><html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<title>RelayAudit evidence report</title><style>
+body{background:#f5f4f0;color:#192927;font:16px/1.6 system-ui;margin:0;padding:40px 24px}
+main{max-width:1000px;margin:auto}.eyebrow{letter-spacing:.12em;font-size:12px;color:#546a60}
+h1{font-size:44px;margin:10px 0}.note{background:#fff1d6;border-left:4px solid #be8738;padding:18px}
+table{background:white;width:100%;border-collapse:collapse;margin:28px 0}
+th,td{padding:14px;text-align:left;border-bottom:1px solid #e1e6e2}th{background:#e9eeea}
+pre{overflow:auto;background:#fff;padding:20px;border:1px solid #dfe5df}footer{color:#64736b}
+@media(max-width:650px){body{padding:24px 12px}h1{font-size:32px}th,td{padding:8px;font-size:12px}}
+</style><main><div class="eyebrow">SIMULATED DEMO · NOT A REAL RELAY TEST</div><h1>Observe. Compare. Reproduce.</h1>
+<p class="note">Capability evidence only. Model identity and operator intent are NOT verified. Small synthetic suites can saturate and can be recognized by a relay.</p><p>Run status: complete</p>
+<table><thead><tr><th>Alias</th><th>Attempts</th><th>Graded</th><th>Passes</th><th>API errors</th>
+<th>Median ms</th></tr></thead><tbody><tr><td>reference_demo</td><td>27</td><td>27</td><td>27</td><td>0</td><td>220.0</td></tr><tr><td>relay_demo</td><td>27</td><td>26</td><td>13</td><td>1</td><td>90.0</td></tr></tbody></table>
+<h2>Paired evidence</h2><pre>[
+  {
+    &quot;target&quot;: &quot;relay_demo&quot;,
+    &quot;reference&quot;: &quot;reference_demo&quot;,
+    &quot;paired_graded&quot;: 26,
+    &quot;declared_conditions_match&quot;: true,
+    &quot;snapshot_equivalence&quot;: &quot;user_declared_not_independently_verified&quot;,
+    &quot;pass_rate_delta_pp&quot;: -50.0,
+    &quot;interpretation&quot;: &quot;descriptive_only&quot;,
+    &quot;identity_verdict&quot;: &quot;not_verified&quot;
+  }
+]</pre>
+<footer>Counts and paired deltas are descriptive. No calibrated false-positive rate, p-value, dilution percentage, or authenticity score is claimed.<p>Keys and endpoint URLs are excluded. Reported model labels and usage are unverified. Full-response latency is not TTFT.</p></footer></main></html>

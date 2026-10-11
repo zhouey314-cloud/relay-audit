@@ -19,7 +19,7 @@
 | 真实官方模型与中转站校准 | `NOT_RUN` |
 | 模型身份误报率、漏报率 | `UNKNOWN` |
 | 沙箱代码生成与执行 | 尚未实现 |
-| GitHub 推送与远端 CI | 等待本次发布的实际运行结果 |
+| GitHub 推送与远端 CI | 公开仓库已推送；Python 3.10 / 3.12 / 3.13 均通过，每个环境实际运行 28 项测试、演示和 plan |
 | X 发布 | `NOT_RUN`，只交付可复制文案 |
 
 ## 演示基线
@@ -40,3 +40,11 @@ python3 -m relay_audit plan --config config.example.json
 ```
 
 如目录已存在，请更换新的输出目录。详见 [EVALUATION.md](EVALUATION.md)；真实校准需在用户提供明确端点、环境变量配置及预算后单独开展。
+
+## 远端验证
+
+公开仓库：[zhouey314-cloud/relay-audit](https://github.com/zhouey314-cloud/relay-audit)。首个源码提交为 `bafa6130cf3da43b2a0f940f4b7d6a5be5f25973`；[该提交的 GitHub Actions](https://github.com/zhouey314-cloud/relay-audit/actions/runs/38104960804) 已完成，三个 Python 环境全部成功。运行日志分别记录 `Ran 28 tests`，并完成明确模拟的演示和 54 次请求计划。
+
+已通过 GitHub API 逐文件核对全部 31 个提交文件的 blob SHA，与本地 Git 完全一致。本机 reports、配置、环境文件和本次接手的独立验证日志不在公开提交中。后续文档提交的 CI 结果可在 [Actions](https://github.com/zhouey314-cloud/relay-audit/actions) 查询；最终交付报告绑定实际最终 commit 与 CI。
+
+源码发布门槛：`PASS`。真实模型身份校准：`NOT_RUN`；相应质量门槛尚未验收。两者不能混称。

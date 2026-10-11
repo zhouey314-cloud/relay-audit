@@ -1,0 +1,11 @@
+{
+  "synthetic_notification": true,
+  "api_requests": 0,
+  "submission": {
+    "delivered": 1,
+    "failures": 0,
+    "dropped": 0,
+    "queue_size": 0
+  },
+  "human_visible_popup": "NOT_VERIFIED"
+}

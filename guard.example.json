@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "listen_host": "127.0.0.1",
+  "listen_port": 18765,
+  "upstream": {
+    "alias": "your-relay",
+    "base_url": "https://your-relay.example/v1",
+    "key_env": "RELAY_UPSTREAM_KEY",
+    "allow_local_http": false
+  },
+  "local_token_env": "RELAY_GUARD_TOKEN",
+  "state_dir": "guard-state",
+  "mode": "passive",
+  "model_mappings": {"your-model": ["your-model", "your-allowed-snapshot"]},
+  "detector": {"min_samples": 20, "window": 20, "error_rate_delta": 0.25, "latency_multiplier": 2.0, "cooldown_seconds": 60},
+  "notifications": {"terminal": true, "system": false, "queue_size": 64},
+  "probe": {"enabled": false, "hourly_limit": 0, "daily_limit": 0}
+}

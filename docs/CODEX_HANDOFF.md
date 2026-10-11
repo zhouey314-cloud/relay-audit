@@ -1,3 +1,5 @@
+> Historical 0.1.0 material. For the current AgentGuard release see README.md, AGENTGUARD_HANDOFF.md and VALIDATION.md. Earlier GitHub publication was withdrawn.
+
 # 给本机 Codex 的完整接手指令
 
 将整个 ZIP 交给本机 Codex，复制下面正文。当前包已经包含可运行源码，不要从零重写成一个庞大系统。

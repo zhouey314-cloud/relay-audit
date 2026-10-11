@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "evidence_status": "synthetic_unverified",
+  "identity_status": "unverified",
+  "real_api": "NOT_RUN",
+  "real_api_verified": false,
+  "identity_calibration": "NOT_RUN",
+  "clients": {
+    "status": "PASS",
+    "results": [
+      {
+        "agent": "codex",
+        "status": "PASS",
+        "artifact": "codex.json"
+      },
+      {
+        "agent": "claude",
+        "status": "PASS",
+        "artifact": "claude.json"
+      }
+    ]
+  },
+  "checks": {
+    "complete_test_suite_pass": true,
+    "six_benchmark_modes_pass": true,
+    "benchmark_passive_exact_request_count": true,
+    "codex_isolated_client_pass": true,
+    "claude_isolated_client_pass": true
+  },
+  "tests": {
+    "status": "PASS",
+    "exit_code": 0,
+    "tests_run": 113,
+    "runner_seconds": 31.668,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0,
+    "command": "python -m unittest discover -s tests -v",
+    "log": "NOT_PUBLISHED_PRIVATE_LOCAL_LOG"
+  },
+  "demo": {
+    "summary": "demo.json",
+    "report": "demo-report.md",
+    "checks": {
+      "three_agent_requests": true,
+      "passive_three_upstream_requests": true,
+      "extra_model_requests_zero": true,
+      "automatic_label_incident": true,
+      "automatic_notification": true,
+      "hook_received_incident": true,
+      "report_created": true,
+      "continued_after_alert": true,
+      "demo_queue_drops_zero": true
+    }
+  },
+  "benchmark": {
+    "status": "PASS",
+    "artifact": "benchmark.json",
+    "modes": 6,
+    "requests_per_mode_workload": 100,
+    "upstream_requests": 660
+  }
+}

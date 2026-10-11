@@ -9,8 +9,13 @@ from .runner import demo_config, plan, run
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="LLM relay capability evidence; NOT an identity certifier")
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    if arguments and arguments[0] == "guard":
+        from .guard.cli import main as guard_main
+        return guard_main(arguments[1:])
+    parser = argparse.ArgumentParser(description="RelayAudit AgentGuard continuous monitoring and automatic alerts; identity unverified")
     commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("guard", help="Local passive Agent API gateway and automatic notifications")
     demo = commands.add_parser("demo", help="Run a clearly labeled offline simulation")
     demo.add_argument("--out")
     commands.add_parser("probes", help="List the synthetic probe families")
@@ -25,7 +30,7 @@ def main(argv=None):
     export = commands.add_parser("export-probes", help="Export reproducible prompts and local answer keys")
     export.add_argument("--seed", type=int, default=20261011)
     export.add_argument("--variants", type=int, default=3)
-    args = parser.parse_args(argv)
+    args = parser.parse_args(arguments)
     try:
         if args.command == "probes":
             print("\n".join(FAMILIES))

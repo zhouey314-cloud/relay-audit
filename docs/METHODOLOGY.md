@@ -1,3 +1,5 @@
+> Historical 0.1.0 material. For the current AgentGuard release see README.md, AGENTGUARD_HANDOFF.md and VALIDATION.md. Earlier GitHub publication was withdrawn.
+
 # 方法与证据边界
 
 版本：0.1.0 / 2026-10-11。

@@ -1,0 +1,36 @@
+{
+  "synthetic_upstream": true,
+  "real_client": true,
+  "agent": "claude",
+  "client_version": "2.1.226 (Claude Code)",
+  "exit_code": 0,
+  "timed_out": false,
+  "response_marker_received": true,
+  "hook_called": true,
+  "hook_new_incidents": 1,
+  "hook_stderr_visible_in_client_capture": true,
+  "upstream_requests": 1,
+  "upstream_request_metadata": [
+    {
+      "number": 1,
+      "path": "/v1/messages",
+      "model": "claude-sonnet-5",
+      "stream": true,
+      "body_bytes": 28519,
+      "tool_output_present": false
+    }
+  ],
+  "incident_types": [
+    "declared_model_mismatch"
+  ],
+  "notifications": {
+    "delivered": 1,
+    "failures": 0,
+    "dropped": 0,
+    "queue_size": 0
+  },
+  "detached": true,
+  "identity_status": "unverified",
+  "real_api_verified": false,
+  "status": "PASS"
+}

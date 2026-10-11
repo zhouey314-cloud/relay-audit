@@ -1,108 +1,113 @@
-# RelayAudit
+# RelayAudit · AgentGuard
 
-**给 LLM API 中转站做可复现的能力审计。报告异常证据，不出售“模型验真证书”。**
+**接入 Agent 请求链路，持续监测并自动告警。**
 
-Local-first, zero runtime dependencies, reproducible probes. Capability evidence is not model identity proof.
+Agent → 本地网关 → 用户指定的中转 API。正常聊天、写代码、工具调用继续进行；网关被动观察模型声明、协议完整性和服务变化，自动发出独立提醒与本地证据报告。
 
-当前版本：`0.1.0`。已经完成本机离线与本地 HTTP 集成测试；**尚未用真实官方 API / 中转站校准，也没有可靠模型身份指纹库**。
+当前版本 **0.2.0**。默认 `passive`，**额外模型请求为零**。**真实模型身份校准尚未完成：标签和全部可见行为相同的隐藏换模无法验证；本项目不承诺识别所有替换，也没有经过校准的准确率。**
 
-## 30 秒看演示
+## 无真实 Key 的演示
 
-需要 Python 3.10+。进入项目根目录，无需安装第三方包，无需 API Key：
-
-```bash
-python3 -m relay_audit demo --out reports/my-first-demo
-```
-
-Windows 使用 `py -3` 替换 `python3`。打开生成的 `report.html`。同一模型标签下，模拟参考端点和模拟降级端点会出现不同答题表现。页面和 JSON 都明确标记 `synthetic=true`，它不代表真实站点测试结果。
-
-示例报告见 [examples/demo/report.md](examples/demo/report.md) 与 [examples/demo/report.html](examples/demo/report.html)。
-
-## 能测什么
-
-| 探针 | 当前实际实现 | 解释边界 |
-|---|---|---|
-| 推理 | 模运算、流水筛选的本地标准答案 | 只反映这些题上的表现 |
-| 格式与指令 | 严格 JSON、额外字段、Unicode 精确复制 | 网关、采样和模型都可能影响结果 |
-| 代码追踪 | 给定 Python 代码，判定返回值 | **不等于代码生成或工程编程能力** |
-| 上下文检索 | 约 1K、4K、16K 字符噪声，首/中/尾锚点 | 不是 128K/1M token 窗口认证；失败不独立证明截断 |
-| 工具调用 | 强制调用函数并核验函数名及参数 | 400/限流/协议错误单列，不当成答题降智 |
-| 两端对照 | 同种子题目，交替请求，按题配对 | 比较的是用户指定参考端点，不自动保证参考真实性 |
-| 工程信号 | HTTP 错误、完整响应耗时、未验证 model/usage 字段 | 不把速度或字段自报当成型号证据 |
-
-每个种子变体生成 9 道独立请求题。默认 3 个变体、2 个端点，共 54 次计划请求。新变体改变数据，**不等于完全隐藏评测结构**；公开题型仍可被识别。
-
-## 测自己的端点
-
-1. 将 `config.example.json` 复制成 `config.local.json`。
-2. 填写每个端点的**完整 HTTP 请求 URL**、协议、模型快照或映射别名，以及保存 Key 的**环境变量名称**。配置文件不接受明文 Key。
-3. 在本机设置这些环境变量，值不需要发给开发者或提交仓库。
-4. 先看请求计划，再执行：
+Python 3.10+；使用独立虚拟环境：
 
 ```bash
-python3 -m relay_audit plan --config config.local.json
-python3 -m relay_audit run --config config.local.json --out reports/real-test-001
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.lock
+python -m pip install --no-deps --no-build-isolation -e .
+relay-audit guard demo --out agentguard-demo/run-001
 ```
 
-`plan` 不读 Key、不发请求；`run` 才调用端点。不自动重试，不自动换模型，不增加备用端点。最多允许 8 个端点，其中最多 1 个参考端点。预算不足会在发请求之前停止。
+演示启动本机模拟 Agent 与模拟中转：正常调用 → 标签改变 → 自动终端告警和 Markdown 报告 → 第三次调用继续完成。目录必须新建。所有模拟素材与期望结果标为 `synthetic_unverified`，不代表识别过真实中转站。
 
-只测一个中转也可以，删除参考端点即可，但只能描述自身能力与错误，不能据此判定掉包。
+## 接入自己的 API 路线
 
-协议支持 `chat_completions` 和 `anthropic_messages`。原生 Gemini、OpenAI Responses、流式 SSE、多模态尚未实现。不要把不同协议、快照、系统提示词、推理预算或采样条件的结果当作同条件比较。
-
-`limit_field` 对 chat 接口可选 `max_tokens` / `max_completion_tokens`；选端点支持的字段。Anthropic 接口始终使用 `max_tokens`。可选 `parameters` 仅支持 `temperature`、`top_p`、`seed`、`reasoning_effort`、`thinking`；并非每个模型支持这些参数，不做静默删参。思考模型可能先用完输出/推理预算，因此要结合 `finish_reason` 和自己的配置解释失败。
-
-目前直接连接指定端点，不使用环境中的 HTTP 代理。原生 Anthropic 示例见 `examples/anthropic-config.json`。无需工具调用测试时，可在配置顶层设置 `families`，比如 `["modular", "code_trace", "context_4096"]`；报告覆盖范围随之缩小。
-
-## 预算、数据与隐私
-
-- 运行工具本身不用部署服务器；真实 API 请求按端点规则计费。
-- 请求数量上限可控。输入字符数和请求输出上限**不是实际 token 数或人民币支出硬上限**。还要考虑思考、缓存、输入计费与服务商规则。
-- `max_wall_seconds` 控制后续请求是否发起；socket timeout 与 DNS/网络行为不能保证精确的整个进程截止时间。
-- API Key 仅从指定环境变量读取，不落盘、不发往开发者。它会作为认证信息发送给用户配置的端点，这是测试所必需的。
-- 禁止跨 URL 重定向。默认输出不含 URL、认证头或答案原文，只保存计分、哈希和允许的响应字段。
-- `--save-responses` 可在本地保存经过已知密钥精确替换的答案文本，用于复核。它不是通用敏感信息检测器，分享前应检查。
-- 报告和本机配置默认被 Git 忽略。输出目录必须是新目录，防止覆盖原报告。无遥测、无第三方 judge 调用。
-
-生成：`manifest.json`、逐请求 `results.jsonl`、`summary.json`、Markdown 与离线 HTML 报告。`usage` 为服务商自报，未独立校验账单。
-
-## 怎么读结果
-
-回答可以评分时：记录 `passed=true/false`。网络、HTTP、无法解析的响应包等：`passed=null`，单列错误。**答题通过率与 API 成功率要一起看**，成功应答的题目子集可能存在选择偏差。
-
-有参考端点时，只对两边都能评分的同一道题算配对通过率差，标记 `descriptive_only`。没有参考、没有配对样本或声明的协议/参数不同，则为 `inconclusive_conditions_or_samples`。`declared_conditions_match` 只比较客户端声明条件，无法观察服务商隐藏系统提示或路由。
-
-所有报告的模型身份结论都是 `not_verified`。当前版本没有校准误报率，不给 p 值、“掺水百分比”、认证总分或“100% 真模型”。两端成绩一致只意味着**当前样本未观察到明显差异**。成绩不同还可能由版本、网关加工、思考预算、队列或格式兼容造成。
-
-题目较小，强模型可能全部满分。需要识别具体型号时，应另行使用同协议、同快照的指纹基线并校准；不要将 ChatGPT 网页回答当 API 基线。
-
-## 复现与测试
+真实端点、模型和预算必须由使用者明确配置。此命令只生成配置，不请求模型：
 
 ```bash
-python3 -m unittest discover -s tests -v
-python3 -m relay_audit probes
-python3 -m relay_audit export-probes --seed 20261011 --variants 3
+relay-audit guard init --config guard.local.json \
+  --upstream https://your-relay.example/v1 --model your-model --port 18765
 ```
 
-导出的题目、标准答案与摘要可供独立检查。默认报告中的响应哈希无法还原原文；需要重新计算历史评分时，应当事先启用本地答案保存。
+在网关进程环境设置 `RELAY_GUARD_TOKEN`（随机本地访问令牌）和 `RELAY_UPSTREAM_KEY`（自己的中转 API Key），然后：
 
-原始交付包的 19 项测试通过；发布前补充 9 项回归，当前共 28 项测试。覆盖预算、报告、密钥回显脱敏、严格计分、工具行为失败、异常 HTTP/JSON、参数差异、本地 HTTP 的两种协议、禁止重定向、不重试 429，以及无凭证无网络的请求计划。本地测试通过不代表 GitHub Actions 已运行，也不代表真实商业检测准确度。实际运行记录见 [docs/VALIDATION.md](docs/VALIDATION.md)，基线与回归契约见 [docs/EVALUATION.md](docs/EVALUATION.md)。
+```bash
+relay-audit guard doctor --config guard.local.json
+relay-audit guard start --config guard.local.json
+```
 
-## 下一版
+`doctor` 默认只检查配置、本机端口和可用客户端，不请求收费 API。`doctor --mock` 验证另外建立的本机模拟流式链路。前台网关的 stderr 自动显示告警；可用 `start --background`，终端告警写到私有 state 目录的 `gateway-terminal.log`。可选 macOS 系统通知通过 `notifications.system=true` 启用，弹窗显示取决于操作系统权限。
 
-先用官方同快照端点作阴性对照，再用已知不同模型/关闭思考/受控截断作阳性对照；报告误报、漏报、成本和参数敏感性。之后再加入沙箱代码生成测试、SSE、真实 token 计数与账单对照、长窗口分档、多时段持续采样和经校准的行为指纹。
+把 Agent 的 Base URL 指向 `http://127.0.0.1:18765/v1`，其 API 凭证使用 **本地令牌**。网关将它替换为固定上游 Key，不转发 Cookie 或订阅登录认证。绑定仅允许 loopback，不接受任意转发目标、不跟随重定向、不自动重试或换模型。
 
-参见 [docs/METHODOLOGY.md](docs/METHODOLOGY.md)、[docs/CODEX_HANDOFF.md](docs/CODEX_HANDOFF.md) 和 [docs/X_DRAFT.md](docs/X_DRAFT.md)。
+Codex 用隔离目录，生成器拒绝修改正在使用的 `~/.codex`：
 
-## 相关工作
+```bash
+relay-audit guard attach-codex --config guard.local.json \
+  --codex-home ./codex-guard-home --model your-model
+python ./codex-guard-home/relayguard-launch.py --skip-git-repo-check "你的任务"
+```
 
-这个问题已有研究与项目，不声称首创或“全网唯一”：
+启动器使用当前本机版本实测的显式 provider 配置。Claude Code 有 `attach-claude` 和 Stop hook；具体 API 认证隔离、启动与恢复见 [Agent 接入指南](docs/AGENT_INTEGRATION.md)。本次没有将任何真实账户流量切换到网关。
 
-- [Real Money, Fake Models](https://arxiv.org/abs/2603.01919)：第三方 shadow API 审计研究。
-- [fpverify](https://github.com/Mohamed7415/fpverify)：基于行为分布与参考指纹的检测，需注意条件匹配及其说明的局限。
-- [apicheck](https://github.com/shipinghai/apicheck)：另一类 API 检测项目。
-- [KBF](https://arxiv.org/abs/2605.29524)：知识边界指纹与黑盒审计方法。
+## 已验收范围
 
-上述是背景与后续调研入口。当前源码为独立实现，没有复制这些项目的代码、题库或指纹数据。
+| 范围 | 当前证据 |
+| --- | --- |
+| Responses / Chat Completions / Anthropic Messages | JSON 与 SSE 实体字节保真、Unicode 分块、增量输出、多轮工具、usage/cache、结束形态 |
+| 模型声明 | 中途标签变化即时告警；允许映射与主动换模型不误报；缺字段不可观测 |
+| 服务变化 | 按会话、模型、协议、推理/输出/工具/输入/缓存条件分组；最少 20 个基线样本 + 20 个当前样本，描述性阈值可配置 |
+| 异常与恢复 | 429、超时、取消、输出预算、协议错误分开；事件去重、冷却、恢复记录 |
+| 故障隔离 | 慢解析/检测/通知、存储失败和队列溢出继续转发，并显示监测降级 |
+| Codex CLI | 本机真实客户端 + 模拟 Responses SSE；notify 回调执行，外部终端提醒；未在客户端聊天输出看到告警 |
+| Claude Code | 本机真实客户端 + 模拟 Messages SSE；Stop hook 提醒在客户端 hook_response 可见 |
+| 生命周期 | 真实子进程启动、状态、停止、重启；detach 校验摘要，恢复原路径；拒绝覆盖后来修改的配置 |
 
-MIT License.
+真实客户端的模型端点都是模拟服务，Key 都是假的。上述验收证明接入与通知机制，不证明真实模型身份或商业效果。[测试与演示记录](docs/VALIDATION.md)、[协议范围](docs/PROTOCOLS.md)、[重复验收契约](evals/PROJECT_EVAL_SPEC.md)给出证据和未完成项。
+
+## 读懂告警与基线
+
+- `declared_model_mismatch`：**声明模型不一致**，只证明标签不属于配置的允许映射。
+- `protocol_or_capability_error`：可观察的协议/能力错误；无法确定是模型、网关还是参数兼容问题。
+- `service_degradation`：可比窗口的错误率或耗时变化，包含样本数及前后分布；没有统计校准的置信度。
+- `behavioral_drift_suspected`：明确启用复核、匹配可信参考且参考自身校准通过后，合成探针支持的疑似行为变化。
+- `monitoring_degraded`：观察丢失、监测模块或通知故障；不能据此判断上游正常。
+
+日常基线只代表过去观测到的表现。样本不足显示 **数据不足**；所有状态保持 `identity_status=unverified`。异常样本不立即吸收进学习基线。使用者可在 `model_mappings` 配置允许的别名/快照；没有映射时按请求模型的精确标签比较。提供 `X-Session-Id` 等稳定会话标识时使用本地 HMAC 关联；缺少会话标识则逐请求独立，宁可数据不足也不混合会话。
+
+## 可选后台复核
+
+只有 `mode=verified_probe`、`probe.enabled=true`、明确 target、正数 hour/day 请求预算都满足时才发起独立合成请求。默认配置关闭它。参考与目标需同协议、同声明快照和请求条件；参考先自校准。没有参考或条件不匹配显示 `uncalibrated`，不宣称身份识别。
+
+复用旧版本地标准答案探针，独立队列/会话，无 judge API，不复制用户对话。预算和事件冷却落盘并原子保留到重启后；耗尽停止复核，继续被动观察。请求数硬上限**不是金额硬上限**。[复核配置示例](examples/guard-probe-config.json)默认仍关闭；只有自行完成明确配置后才能启用。
+
+## 隐私、管理与退出
+
+不保存密钥、认证头、Cookie、提示词、代码、回答、推理或工具参数正文。只保留白名单元数据、受限外部标签和密钥化会话摘要；usage 为**上游自报**。事件和报告写在本机；目录权限 700、文件 600。保留期限默认 14 天，启动时清理，也可手动执行：
+
+```bash
+relay-audit guard status --config guard.local.json
+relay-audit guard report --config guard.local.json --out report-001.md
+relay-audit guard cleanup --config guard.local.json
+relay-audit guard backup --config guard.local.json --out guard-backup.json
+relay-audit guard restore --backup guard-backup.json --out guard-restored.json
+relay-audit guard stop --config guard.local.json
+relay-audit guard detach --manifest ./codex-guard-home/.relayguard-adapter/codex-manifest.json
+```
+
+备份不包含 Key，restore 只创建新文件；detach 在安装文件与备份摘要都未变时恢复。结束使用网关的 Agent 后选择原配置重新启动。**网关进程退出会中断连接，不会神奇地直连**；支持重新启动及安全恢复配置，尚未提供操作系统进程监督安装器。
+
+当前实现限制：原生 WebSocket 明确返回 426；Codex 隔离配置使用官方支持的 HTTP/SSE。压缩实体保持转发，但压缩内容不解码观测，明确标为降级。32 MiB 请求实体上限；默认单个观测事件/JSON 64 KiB、解析队列及检测队列各 256 项，超限继续转发、减少证据。未实现原生 Gemini、多模态语义评测、MCP 服务、所有 IDE/WorkBuddy 接入及真实模型身份指纹库。详细边界见 [隐私与检测边界](docs/PRIVACY_AND_LIMITS.md)。
+
+## 复现
+
+```bash
+python -m unittest discover -s tests -v
+python evals/run_acceptance.py --out acceptance-local --requests 100
+# 显式选择本机 Codex / Claude Code 的模拟端点接入验收：
+python evals/run_acceptance.py --out acceptance-with-clients --requests 100 --clients
+```
+
+验收只使用本机模拟服务，不读历史聊天 Key，不改变订阅登录。CI 不依赖这两个客户端，也不会调用收费模型。测量直连、仅代理和开启观测的相同合成负载，报告真实开销，**不承诺零延迟**。
+
+旧手动探针 CLI 继续可用，说明归档在 [旧版探针](docs/LEGACY_PROBES.md)；它是复核/调试功能。项目 MIT 许可，基于现有 RelayAudit 代码继续开发，未采用第三方身份指纹算法或复制它们的准确率。X 文案见 [docs/X_DRAFT.md](docs/X_DRAFT.md)，仅用于手动复制。

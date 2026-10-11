@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "tests_run": 113,
+  "runner_seconds": 31.668,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "expected_failures": 0,
+  "unexpected_successes": 0,
+  "command": "python -m unittest discover -s tests -v",
+  "log": "NOT_PUBLISHED_PRIVATE_LOCAL_LOG"
+}

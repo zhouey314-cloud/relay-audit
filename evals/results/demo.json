@@ -1,0 +1,101 @@
+{
+  "synthetic": true,
+  "identity_status": "unverified",
+  "protocol": "responses",
+  "agent_requests": 3,
+  "observations": [
+    {
+      "number": 1,
+      "http_status": 200,
+      "response_bytes": 2685,
+      "seconds": 0.013819
+    },
+    {
+      "number": 2,
+      "http_status": 200,
+      "response_bytes": 2685,
+      "seconds": 0.018402
+    },
+    {
+      "number": 3,
+      "http_status": 200,
+      "response_bytes": 2685,
+      "seconds": 0.013672
+    }
+  ],
+  "upstream_requests": 3,
+  "extra_model_requests": 0,
+  "continued_after_alert": true,
+  "incident_types": [
+    "declared_model_mismatch"
+  ],
+  "notification": {
+    "delivered": 1,
+    "failures": 0,
+    "dropped": 0,
+    "queue_size": 0
+  },
+  "hook_receipt": {
+    "timestamp": 1791689175.449395,
+    "channel": "harness",
+    "hook_called": true,
+    "new_incidents": 1,
+    "stderr_emitted": 1,
+    "system_notifications_submitted": 0,
+    "hook_payload_saved": false,
+    "identity_status": "unverified"
+  },
+  "report": "demo-report.md",
+  "status": {
+    "identity_status": "unverified",
+    "baseline_state": "observed_anomaly",
+    "requests_observed": 3,
+    "baseline_display": "已观察到事件；真实模型身份未验证",
+    "groups": [
+      {
+        "fingerprint": "53f5504773b018c4061c5227adbd332e",
+        "baseline_samples": 1,
+        "current_samples": 0,
+        "conditions": {
+          "reasoning_effort": null,
+          "thinking_enabled": false,
+          "output_limit": null,
+          "tools_present": false,
+          "input_size_bucket": "<1KiB",
+          "cache_status": "hit",
+          "stream": true
+        },
+        "baseline_version": "guard-descriptive-v1",
+        "collection_started_at_utc": "2026-10-11T03:26:15.421498+00:00",
+        "collection_ended_at_utc": "2026-10-11T03:26:15.444405+00:00",
+        "state": "learning"
+      }
+    ],
+    "active_incidents": 1,
+    "error_count": 0,
+    "mode": "passive",
+    "probe": {
+      "enabled": false,
+      "extra_requests": 0,
+      "inflight": 0,
+      "budget_state": "disabled",
+      "calibration_state": "uncalibrated",
+      "budget_used_hour": 0,
+      "budget_used_day": 0
+    },
+    "requests_forwarded": 3,
+    "queue_dropped": 0,
+    "queue_pending": 0,
+    "parser_queue_pending": 0,
+    "monitoring_state": "observing",
+    "monitoring_degraded": [],
+    "notification": {
+      "delivered": 1,
+      "failures": 0,
+      "dropped": 0,
+      "queue_size": 0
+    },
+    "uptime_seconds": 0.078
+  },
+  "real_api_verified": false
+}

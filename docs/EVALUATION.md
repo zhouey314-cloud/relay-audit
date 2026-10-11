@@ -1,3 +1,5 @@
+> Historical 0.1.0 material. For the current AgentGuard release see README.md, AGENTGUARD_HANDOFF.md and VALIDATION.md. Earlier GitHub publication was withdrawn.
+
 # 初版验证契约与回归依据
 
 RelayAudit 0.1.0 的发布目标是可复现的能力记录、严格计分和安全的本地报告流程。源码发布不以真实模型身份校准完成为前提，也不代表校准通过。

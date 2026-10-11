@@ -1,0 +1,26 @@
+{
+  "mode": "passive",
+  "probe": {
+    "enabled": false,
+    "hourly_limit": 0,
+    "daily_limit": 0,
+    "concurrency": 1,
+    "cooldown_seconds": 300,
+    "min_samples": 3,
+    "calibration_samples": 6,
+    "minimum_drop": 0.35,
+    "timeout_seconds": 20,
+    "families": ["modular", "ledger", "json_schema"],
+    "target": {
+      "url": "https://your-relay.example/v1/responses",
+      "protocol": "responses", "model": "your-model", "snapshot_id": "same-declared-snapshot",
+      "key_env": "PROBE_TARGET_KEY", "parameters": {}, "output_limit": 512, "limit_field": "max_output_tokens"
+    },
+    "reference": {
+      "url": "https://your-explicit-reference.example/v1/responses",
+      "protocol": "responses", "model": "your-reference-model", "snapshot_id": "same-declared-snapshot",
+      "key_env": "PROBE_REFERENCE_KEY", "parameters": {}, "output_limit": 512, "limit_field": "max_output_tokens",
+      "trusted": false
+    }
+  }
+}

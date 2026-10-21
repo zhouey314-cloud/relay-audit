@@ -20,6 +20,11 @@ relay-audit guard demo --out agentguard-demo/run-001
 
 演示启动本机模拟 Agent 与模拟中转：正常调用 → 标签改变 → 自动终端告警和 Markdown 报告 → 第三次调用继续完成。目录必须新建。所有模拟素材与期望结果标为 `synthetic_unverified`，不代表识别过真实中转站。
 
+[五分钟 QuickStart 与可下载纯合成 fixture](examples/guard-synthetic/README.md)
+提供完整命令和 ZIP 白名单。GitHub Actions 每个 Python 版本提供
+`synthetic-demo-python-*` 下载工件，内含 summary、report、请求样例和 SHA256
+清单，不包含运行状态、association key 或真实素材。
+
 ## 接入自己的 API 路线
 
 真实端点、模型和预算必须由使用者明确配置。此命令只生成配置，不请求模型：
@@ -104,6 +109,8 @@ relay-audit guard detach --manifest ./codex-guard-home/.relayguard-adapter/codex
 ```bash
 python -m unittest discover -s tests -v
 python evals/run_acceptance.py --out acceptance-local --requests 100
+# 同样的纯合成负载，8 并发；任何 HTTP/实体错误会使验收失败：
+python evals/run_acceptance.py --out acceptance-concurrent --requests 200 --concurrency 8
 # 显式选择本机 Codex / Claude Code 的模拟端点接入验收：
 python evals/run_acceptance.py --out acceptance-with-clients --requests 100 --clients
 ```

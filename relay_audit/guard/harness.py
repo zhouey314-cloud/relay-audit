@@ -286,7 +286,8 @@ async def run_demo(output_dir: str | Path) -> dict:
         receipt = notify(root / "state", "harness")
         incidents = gateway.store.read(100)
         report = gateway.store.report(root / "report.md")
-        summary = {**result, "upstream_requests": mock["mock_state"]["request_count"],
+        summary = {**result, "evidence_status": "synthetic_unverified", "identity_status": "unverified",
+                   "upstream_requests": mock["mock_state"]["request_count"],
                    "extra_model_requests": 0, "continued_after_alert": result["observations"][-1]["http_status"] == 200,
                    "incident_types": sorted({i["event_type"] for i in incidents}),
                    "notification": gateway.notifier.snapshot(), "hook_receipt": receipt,

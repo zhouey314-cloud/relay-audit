@@ -1,0 +1,6 @@
+{
+  "model": "mock-model",
+  "stream": true,
+  "messages": [{"role": "user", "content": "Synthetic demo: hello 你好 🙂"}],
+  "max_tokens": 32
+}

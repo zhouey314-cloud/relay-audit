@@ -51,7 +51,9 @@ class _DiscardUpgrade:
 
 
 def headers_without_hops(headers, request=False):
-    blocked = HOP | {word.strip().lower() for word in headers.get("Connection", "").split(",")}
+    # Repeated Connection fields may each nominate headers for this one hop.
+    blocked = HOP | {word.strip().lower() for name, value in headers.items()
+                     if name.lower() == "connection" for word in value.split(",")}
     if request:
         blocked |= {"authorization", "x-api-key", "cookie", "host"}
     else:

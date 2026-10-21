@@ -13,6 +13,7 @@ from urllib.error import URLError
 from unittest.mock import patch
 
 from aiohttp import ClientError, ClientSession, web
+from multidict import CIMultiDict
 
 from relay_audit.guard.cli import _control
 from relay_audit.guard.config import validate
@@ -120,6 +121,7 @@ class GatewayFailureHardeningTests(unittest.IsolatedAsyncioTestCase):
         self.runners = []
         self.release = asyncio.Event()
         self.received = []
+        self.received_headers = []
         self.env = patch.dict(os.environ, {"HARDENING_LOCAL_TOKEN": LOCAL_KEY, "HARDENING_UPSTREAM_TOKEN": UPSTREAM_KEY})
         self.env.start()
         application = web.Application()
@@ -146,6 +148,7 @@ class GatewayFailureHardeningTests(unittest.IsolatedAsyncioTestCase):
     async def upstream(self, request):
         body = await request.read()
         self.received.append(body)
+        self.received_headers.append(CIMultiDict(request.headers))
         if request.headers.get("X-Synthetic-Scenario") == "midstream_timeout":
             response = web.StreamResponse(headers={"Content-Type": "text/event-stream"})
             await response.prepare(request)
@@ -153,9 +156,16 @@ class GatewayFailureHardeningTests(unittest.IsolatedAsyncioTestCase):
             await response.write(raw)
             await self.release.wait()
             return response
+        headers = None
+        if request.headers.get("X-Synthetic-Scenario") == "repeated_connection":
+            headers = CIMultiDict([
+                ("Connection", "X-First-Reply"), ("Connection", "X-Second-Reply"),
+                ("X-First-Reply", PRIVATE), ("X-Second-Reply", PRIVATE),
+                ("X-Business-Repeat", "first"), ("X-Business-Repeat", "second"),
+            ])
         return web.Response(body=json.dumps({"id": "synthetic-response", "status": "completed", "model": "model-A",
                                              "output": [{"type": "message", "content": [{"type": "output_text", "text": PRIVATE}]}]}).encode(),
-                            content_type="application/json")
+                            content_type="application/json", headers=headers)
 
     async def gateway(self, store=None, **changed):
         state = Path(self.directory.name) / ("state-" + str(len(self.runners)))
@@ -179,6 +189,42 @@ class GatewayFailureHardeningTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(gateway.status()["monitoring_state"], "degraded")
         self.assertIn("retention_cleanup_failure", gateway.status()["monitoring_degraded"])
         self.assertNotIn("SYNTHETIC_PRIVATE_STORAGE_EXCEPTION", store.report())
+
+    async def test_all_repeated_request_connection_headers_are_removed(self):
+        url, gateway = await self.gateway()
+        body = b'{"model":"model-A","input":"synthetic","stream":false}'
+        headers = CIMultiDict([
+            ("Authorization", "Bearer " + LOCAL_KEY),
+            ("Connection", "X-First-Hop"), ("Connection", "x-second-hop, X-Third-Hop"),
+            ("X-First-Hop", PRIVATE), ("X-Second-Hop", PRIVATE), ("X-Third-Hop", PRIVATE),
+            ("X-Business-Repeat", "first"), ("X-Business-Repeat", "second"),
+        ])
+        async with self.client.post(url + "/v1/responses", data=body, headers=headers) as response:
+            self.assertEqual(response.status, 200)
+            self.assertEqual((await response.json())["status"], "completed")
+        await gateway.flush()
+        self.assertEqual(self.received, [body])
+        captured = self.received_headers[0]
+        for name in ("X-First-Hop", "X-Second-Hop", "X-Third-Hop"):
+            self.assertNotIn(name, captured)
+        self.assertEqual(captured.getall("X-Business-Repeat"), ["first", "second"])
+        self.assertEqual(captured["Authorization"], "Bearer " + UPSTREAM_KEY)
+        self.assertEqual(gateway.forwarded, 1)
+
+    async def test_all_repeated_response_connection_headers_are_removed(self):
+        url, gateway = await self.gateway()
+        body = b'{"model":"model-A","input":"synthetic","stream":false}'
+        async with self.client.post(url + "/v1/responses", data=body,
+                                    headers={"Authorization": "Bearer " + LOCAL_KEY,
+                                             "X-Synthetic-Scenario": "repeated_connection"}) as response:
+            self.assertEqual(response.status, 200)
+            self.assertEqual((await response.json())["output"][0]["content"][0]["text"], PRIVATE)
+            for name in ("X-First-Reply", "X-Second-Reply"):
+                self.assertNotIn(name, response.headers)
+            self.assertEqual(response.headers.getall("X-Business-Repeat"), ["first", "second"])
+        await gateway.flush()
+        self.assertEqual(self.received, [body])
+        self.assertEqual(gateway.forwarded, 1)
 
     async def test_midstream_timeout_metadata_preserves_timeout_instead_of_generic_truncation(self):
         url, gateway = await self.gateway(request_timeout_seconds=1)

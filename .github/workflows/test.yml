@@ -17,9 +17,21 @@ jobs:
       - run: python -m pip install --no-deps --no-build-isolation -e .
       - run: python evals/run_acceptance.py --out acceptance-ci --requests 30
       - run: python -m relay_audit demo --out demo-ci
+      - run: python evals/package_demo.py --run acceptance-ci/demo --out synthetic-demo.zip
       - run: python -m relay_audit plan --config config.example.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-demo-python-${{ matrix.python-version }}
+          path: synthetic-demo.zip
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: acceptance-python-${{ matrix.python-version }}
-          path: acceptance-ci/
+          path: |
+            acceptance-ci/summary.json
+            acceptance-ci/tests.json
+            acceptance-ci/tests.log
+            acceptance-ci/benchmark.json
+            acceptance-ci/demo/summary.json
+            acceptance-ci/demo/report.md

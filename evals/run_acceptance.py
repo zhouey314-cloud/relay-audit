@@ -169,7 +169,7 @@ async def drained(gateway):
 
 
 async def measure_mode(out: Path, upstream_url: str, upstream_state: dict, workload: str,
-                       pieces: list[bytes], mode: str, requests: int):
+                       pieces: list[bytes], mode: str, requests: int, concurrency: int = 1):
     state_dir = out / "benchmark-state" / workload / mode
     state_dir.mkdir(parents=True, exist_ok=False)
     guard_runner = gateway = None
@@ -196,7 +196,7 @@ async def measure_mode(out: Path, upstream_url: str, upstream_state: dict, workl
                 token = LOCAL_TOKEN
             timeout = aiohttp.ClientTimeout(total=30)
             async with aiohttp.ClientSession(timeout=timeout, auto_decompress=False,
-                                             connector=aiohttp.TCPConnector(limit=1)) as session:
+                                             connector=aiohttp.TCPConnector(limit=concurrency)) as session:
                 for _ in range(WARMUPS):
                     await receive(session, url, body, token, expected_digest, len(expected))
                 await drained(gateway)
@@ -205,8 +205,12 @@ async def measure_mode(out: Path, upstream_url: str, upstream_state: dict, workl
                 cpu_started = time.process_time()
                 wall_started = time.perf_counter()
                 try:
-                    samples = [await receive(session, url, body, token, expected_digest, len(expected))
-                               for _ in range(requests)]
+                    # Batches bound both client concurrency and retained task objects.
+                    samples = []
+                    for offset in range(0, requests, concurrency):
+                        samples.extend(await asyncio.gather(*(
+                            receive(session, url, body, token, expected_digest, len(expected))
+                            for _ in range(min(concurrency, requests - offset)))))
                     # Include all parser/detector/notification CPU, rather than measuring
                     # only work that happens to finish before the final network byte.
                     await drained(gateway)
@@ -233,7 +237,9 @@ async def measure_mode(out: Path, upstream_url: str, upstream_state: dict, workl
                 else:
                     require(checks, "observation_disabled_explicit", "observation_disabled" in status["monitoring_degraded"])
             return {"workload": workload, "mode": mode, "status": "PASS", "checks": checks,
-                    "warmup_requests": WARMUPS, "measured_requests": requests,
+                    "warmup_requests": WARMUPS, "measured_requests": requests, "concurrency": concurrency,
+                    "completed_requests": len(samples), "error_requests": 0, "error_rate": 0,
+                    "throughput_requests_per_second_including_queue_drain": requests / wall_seconds,
                     "agent_requests_including_warmup": total, "upstream_requests": upstream_requests,
                     "extra_model_requests": upstream_requests - total, "queue_dropped": status["queue_dropped"] if status else 0,
                     "request_payload_bytes": len(body), "response_payload_bytes": len(expected),
@@ -250,7 +256,7 @@ async def measure_mode(out: Path, upstream_url: str, upstream_state: dict, workl
                 await guard_runner.cleanup()
 
 
-async def benchmark(out: Path, requests: int):
+async def benchmark(out: Path, requests: int, concurrency: int = 1):
     payloads = fixtures()
     upstream, state = benchmark_upstream(payloads)
     runner, url = await serve(upstream)
@@ -261,7 +267,9 @@ async def benchmark(out: Path, requests: int):
               "conditions": {"upstream": "same_process_ipv4_loopback", "protocol": "chat_completions",
                              "fixed_synthetic_entities": True, "artificial_delay_seconds": 0,
                              "warmup_per_mode_workload": WARMUPS, "measured_requests_per_mode_workload": requests,
-                             "concurrency": 1, "fresh_mode_state_and_fake_credentials": True,
+                             "concurrency": concurrency, "scheduling": "bounded batches; next batch after previous receives EOF",
+                             "errors": "any HTTP, incomplete entity, timeout or digest failure aborts the gate; no retries",
+                             "fresh_mode_state_and_fake_credentials": True,
                              "observation_queue_capacity": 4096,
                              "observation_max_event_bytes": 65536,
                              "detector_timeout_seconds": 2,
@@ -276,8 +284,8 @@ async def benchmark(out: Path, requests: int):
     try:
         for workload, pieces in payloads.items():
             for mode in result["conditions"]["mode_order"]:
-                print(f"Benchmark {workload} / {mode}: {requests} sequential requests", flush=True)
-                result["modes"].append(await measure_mode(out, url, state, workload, pieces, mode, requests))
+                print(f"Benchmark {workload} / {mode}: {requests} requests, concurrency {concurrency}", flush=True)
+                result["modes"].append(await measure_mode(out, url, state, workload, pieces, mode, requests, concurrency))
                 save_json(out / "benchmark.json", result)
         result["upstream_requests_total"] = state["requests"]
         result["expected_upstream_requests_total"] = 6 * (WARMUPS + requests)
@@ -353,7 +361,7 @@ async def acceptance(args):
         require(checks, "continued_after_alert", demo["continued_after_alert"] and all(o["http_status"] == 200 for o in demo["observations"]))
         require(checks, "demo_queue_drops_zero", demo["status"]["queue_dropped"] == 0)
         stage = "loopback_benchmark"
-        measured = await benchmark(out, args.requests)
+        measured = await benchmark(out, args.requests, args.concurrency)
         summary["benchmark"] = {"status": measured["status"], "artifact": "benchmark.json", "modes": len(measured["modes"]),
                                 "requests_per_mode_workload": args.requests, "upstream_requests": measured["upstream_requests_total"]}
         require(summary["checks"], "six_benchmark_modes_pass", measured["status"] == "PASS" and len(measured["modes"]) == 6)
@@ -384,11 +392,14 @@ async def acceptance(args):
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True, help="new output directory; existing paths are refused")
-    parser.add_argument("--requests", type=int, default=100, help="measured sequential requests per workload/mode (default: 100)")
+    parser.add_argument("--requests", type=int, default=100, help="measured requests per workload/mode (default: 100)")
+    parser.add_argument("--concurrency", type=int, default=1, help="bounded benchmark concurrency (default: 1; max: 128)")
     parser.add_argument("--clients", action="store_true", help="explicitly run installed Codex and Claude clients against loopback mock")
     args = parser.parse_args()
     if not 1 <= args.requests <= 10000:
         parser.error("--requests must be between 1 and 10000")
+    if not 1 <= args.concurrency <= 128:
+        parser.error("--concurrency must be between 1 and 128")
     if args.out.expanduser().exists():
         parser.error("--out must be a new directory")
     return args

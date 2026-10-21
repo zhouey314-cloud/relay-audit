@@ -150,6 +150,17 @@ class Gateway:
         await self.parser_queue.join()
         await self.queue.join()
 
+    @staticmethod
+    def _unobservable_row(context):
+        # Losing observation is independent of a known HTTP transport outcome.
+        original = context["row"]
+        row = {**original, "termination": "unobservable", "parse_error": False}
+        if context["cancelled"]:
+            row.update({"termination": "client_cancelled", "cancel_source": "downstream_disconnect"})
+        elif original.get("termination") in {"upstream_timeout", "upstream_transport_error"}:
+            row["termination"] = original["termination"]
+        return row
+
     def _parse_enqueue(self, context, kind, data=None, arrived_ms=None):
         try:
             self.parser_queue.put_nowait((context, kind, data, arrived_ms))
@@ -158,7 +169,7 @@ class Gateway:
             self.dropped += 1
             self._mark_degraded("parser_queue_full")
             if kind == "finish":
-                self.submit({**context["row"], "termination": "unobservable", "parse_error": False})
+                self.submit(self._unobservable_row(context))
 
     async def _parser_worker(self):
         while True:
@@ -217,7 +228,7 @@ class Gateway:
                 context["lost"] = True
                 self._mark_degraded("observer_failure")
                 if kind == "finish":
-                    self.submit({**row, "termination": "unobservable", "parse_error": False})
+                    self.submit(self._unobservable_row(context))
             finally:
                 self.parser_queue.task_done()
 

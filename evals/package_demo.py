@@ -23,6 +23,9 @@ def package_demo(run, output):
             or summary.get("extra_model_requests") != 0):
         raise ValueError("only the synthetic zero-extra-request demo may be packaged")
     contents = {name: path.read_bytes() for name, path in sources.items()}
+    # Runtime summaries contain an absolute local report path; the archive is portable.
+    summary["report"] = "report.md"
+    contents["summary.json"] = (json.dumps(summary, indent=2) + "\n").encode()
     manifest = {"evidence_status": "synthetic_unverified", "identity_status": "unverified",
                 "real_api": "NOT_RUN", "excluded": ["state", "credentials", "association keys", "raw runtime inputs"],
                 "files": [{"path": name, "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}

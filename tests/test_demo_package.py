@@ -14,7 +14,8 @@ class SyntheticDemoPackageTests(unittest.TestCase):
         run = root / "demo"
         run.mkdir()
         (run / "summary.json").write_text(json.dumps({"evidence_status": "synthetic_unverified",
-                                                       "real_api_verified": False, "extra_model_requests": 0}))
+                                                       "real_api_verified": False, "extra_model_requests": 0,
+                                                       "report": "/private/SYNTHETIC_LOCAL_PATH/report.md"}))
         (run / "report.md").write_text("Synthetic mechanical observations; identity unverified.\n")
         state = run / "state"
         state.mkdir()
@@ -35,6 +36,8 @@ class SyntheticDemoPackageTests(unittest.TestCase):
                     raw = archive.read(entry["path"])
                     self.assertEqual(hashlib.sha256(raw).hexdigest(), entry["sha256"])
                     self.assertNotIn(b"SYNTHETIC_RUNTIME_STATE_MUST_NOT_BE_PACKAGED", raw)
+                    self.assertNotIn(b"SYNTHETIC_LOCAL_PATH", raw)
+                self.assertEqual(json.loads(archive.read("summary.json"))["report"], "report.md")
             with self.assertRaises(ValueError):
                 package_demo(run, output)
 

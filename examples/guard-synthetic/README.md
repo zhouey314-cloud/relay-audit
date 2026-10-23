@@ -6,6 +6,14 @@ also exercises Responses, Anthropic Messages, tools and Unicode fragmentation.
 It emits a normal synthetic label, a changed label and a request after the alert.
 A changed label is an observable label mismatch, not verified model identity.
 
+## Stable example and release
+
+[View the versioned synthetic report](report.md) and [summary](summary.json).
+Download the v0.2.1 wheel and synthetic-demo ZIP from the
+[release](https://github.com/zhouey314-cloud/relay-audit/releases/tag/v0.2.1).
+The report is an invented loopback run, not evidence of model identity.
+Actions artifacts remain per-run test evidence with a retention deadline.
+
 ## Reproduce in about five minutes
 
 Use Python 3.10, 3.12 or 3.13. Clone the repository and run from its root:

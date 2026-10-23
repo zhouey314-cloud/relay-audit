@@ -4,7 +4,15 @@
 
 Agent → 本地网关 → 用户指定的中转 API。正常聊天、写代码、工具调用继续进行；网关被动观察模型声明、协议完整性和服务变化，自动发出独立提醒与本地证据报告。
 
-当前版本 **0.2.0**。默认 `passive`，**额外模型请求为零**。**真实模型身份校准尚未完成：标签和全部可见行为相同的隐藏换模无法验证；本项目不承诺识别所有替换，也没有经过校准的准确率。**
+当前版本 **0.2.1**。默认 `passive`，**额外模型请求为零**。**真实模型身份校准尚未完成：标签和全部可见行为相同的隐藏换模无法验证；本项目不承诺识别所有替换，也没有经过校准的准确率。**
+
+## 稳定演示与下载
+
+- [在线查看纯合成报告](examples/guard-synthetic/report.md)：受版本控制，标记 `synthetic_unverified`，模型身份始终未验证。
+- [v0.2.1 安装包、合成演示与 SHA256](https://github.com/zhouey314-cloud/relay-audit/releases/tag/v0.2.1)：下载 wheel 后在独立环境 `python -m pip install ./relay_audit_lite-0.2.1-py3-none-any.whl`，运行 `relay-audit guard demo --out demo-001`。
+- [发行范围与验证方式](docs/RELEASE_NOTES_0.2.1.md)：重复 Connection 头过滤、监测降级期间的真实传输结果保留；没有修改模型检测规则或宣称真实模型校准通过。
+
+Actions 工件继续作为每次 CI 的测试证据，并有保留期限；上面的版本报告和 Release 下载是长期演示入口。旧 v0.2.0 标签和资产保留。
 
 ## 无真实 Key 的演示
 

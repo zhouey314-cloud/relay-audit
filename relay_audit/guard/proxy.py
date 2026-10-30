@@ -78,6 +78,7 @@ class Gateway:
         self.queue = asyncio.Queue(maxsize=self.config["observation"]["queue_size"])
         self.parser_queue = asyncio.Queue(maxsize=self.config["observation"]["queue_size"])
         self.forwarded = self.observed = self.dropped = 0
+        self.inflight = self.capacity_rejected = 0
         self.degraded = set()
         self.stop_event = asyncio.Event()
         self._worker_task = None
@@ -265,6 +266,9 @@ class Gateway:
         if probe.get("budget_state") == "monitoring_degraded":
             reasons.append("probe_review_unavailable")
         return {**detector, "identity_status": "unverified", "mode": self.config["mode"],
+                "inflight_requests": self.inflight,
+                "max_inflight_requests": self.config["max_inflight_requests"],
+                "capacity_rejected": self.capacity_rejected,
                 "requests_forwarded": self.forwarded, "requests_observed": self.observed,
                 "queue_dropped": self.dropped, "queue_pending": self.queue.qsize(),
                 "parser_queue_pending": self.parser_queue.qsize(),
@@ -273,6 +277,11 @@ class Gateway:
                 "probe": probe, "uptime_seconds": round(time.time() - self.started_at, 3)}
 
     def authenticate(self, request):
+        # Ambiguous credentials are rejected before any upstream I/O.
+        authorizations = request.headers.getall("Authorization", [])
+        api_keys = request.headers.getall("x-api-key", [])
+        if len(authorizations) > 1 or (not authorizations and len(api_keys) != 1):
+            raise web.HTTPUnauthorized(text="One unambiguous local credential required.")
         authorization = request.headers.get("Authorization", "")
         token = authorization[7:] if authorization.lower().startswith("bearer ") else request.headers.get("x-api-key", "")
         if not token or not token.isascii() or not hmac.compare_digest(token, self.local_token):
@@ -350,6 +359,19 @@ class Gateway:
 
     async def forward(self, request):
         self.authenticate(request)
+        if self.inflight >= self.config["max_inflight_requests"]:
+            self.capacity_rejected += 1
+            raise web.HTTPServiceUnavailable(text="Local gateway capacity reached; retry explicitly later.",
+                                             headers={"Retry-After": "1"})
+        # No await between checking and reserving. Capacity covers body reads and
+        # the entire stream, and is returned on all errors/disconnects.
+        self.inflight += 1
+        try:
+            return await self._forward(request)
+        finally:
+            self.inflight -= 1
+
+    async def _forward(self, request):
         if request.headers.get("Upgrade", "").lower() == "websocket":
             self._mark_degraded("websocket_not_supported")
             # aiohttp treats Upgrade payload as a future protocol tail. Consume it

@@ -17,6 +17,7 @@ DEFAULT = {
     "local_token_env": "RELAY_GUARD_TOKEN", "state_dir": "guard-state",
     "mode": "passive", "model_mappings": {},
     "request_timeout_seconds": 300, "retention_days": 14,
+    "max_inflight_requests": 16,
     "observation": {"enabled": True, "queue_size": 256, "max_event_bytes": 65536,
                     "detector_timeout_seconds": 2},
     "detector": {"min_samples": 20, "window": 20, "error_rate_delta": 0.25,
@@ -92,6 +93,7 @@ def validate(raw):
         if len(allowed) > 32 or any(not isinstance(label, str) or not 1 <= len(label) <= 200 for label in allowed):
             raise ValueError("invalid response label")
     _number(value["request_timeout_seconds"], 1, 3600)
+    _number(value["max_inflight_requests"], 1, 256, True)
     _number(value["retention_days"], 1, 3650, True)
     for key, low, high in (("queue_size", 1, 100000), ("max_event_bytes", 1024, 4*1024*1024)):
         _number(value["observation"][key], low, high, True)

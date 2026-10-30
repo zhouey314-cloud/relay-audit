@@ -47,6 +47,7 @@ EVIDENCE_FIELDS = REQUEST_FIELDS | CONDITION_FIELDS | USAGE_FIELDS | {
     "delivered", "failures", "dropped", "queue_size", "removed_records",
     "baseline_display", "baseline_version", "collection_started_at_utc", "collection_ended_at_utc",
     "parser_queue_pending",
+    "inflight_requests", "max_inflight_requests", "capacity_rejected",
     "probe_version", "seed", "families", "probe_id", "passed", "samples_requested",
 }
 

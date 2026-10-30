@@ -557,6 +557,36 @@ class GuardProxyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(gateway.status()["monitoring_state"], "degraded")
         self.assert_private_not_stored()
 
+    async def test_capacity_rejects_without_upstream_and_recovers_after_stream(self):
+        base,gateway=await self.new_gateway(overrides={"max_inflight_requests":1})
+        held=await self.post(base,stream=True,scenario="held")
+        await self.stream_opened.wait()
+        self.assertEqual(gateway.status()['inflight_requests'],1)
+        rejected=await self.post(base)
+        self.assertEqual(rejected.status,503);self.assertEqual(rejected.headers['Retry-After'],'1')
+        await rejected.read();self.assertEqual(len(self.received),1)
+        self.release.set();await held.read()
+        for _ in range(50):
+            if gateway.inflight==0:break
+            await asyncio.sleep(.01)
+        response=await self.post(base);self.assertEqual(response.status,200);await response.read()
+        self.assertEqual(len(self.received),2);self.assertEqual(gateway.status()['capacity_rejected'],1)
+        await self.flush(gateway);self.assert_private_not_stored()
+
+    async def test_duplicate_local_credentials_never_reach_upstream(self):
+        base,gateway=await self.new_gateway()
+        for headers in [[('Authorization','Bearer '+LOCAL_KEY),('Authorization','Bearer invalid')],
+                        [('x-api-key',LOCAL_KEY),('x-api-key','invalid')]]:
+            response=await self.client.post(base+'/v1/responses',json={'model':'model-A'},headers=headers)
+            self.assertEqual(response.status,401);await response.read()
+        self.assertEqual(len(self.received),0);self.assertEqual(gateway.forwarded,0)
+
+    async def test_capacity_returns_after_upstream_failure(self):
+        base,gateway=await self.new_gateway(overrides={'max_inflight_requests':1})
+        failed=await self.post(base,scenario='limited');self.assertEqual(failed.status,429);await failed.read()
+        response=await self.post(base);self.assertEqual(response.status,200);await response.read()
+        self.assertEqual(gateway.inflight,0)
+
 
 if __name__ == "__main__":
     unittest.main()

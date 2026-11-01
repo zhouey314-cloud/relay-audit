@@ -14,11 +14,20 @@ Download the v0.2.1 wheel and synthetic-demo ZIP from the
 The report is an invented loopback run, not evidence of model identity.
 Actions artifacts remain per-run test evidence with a retention deadline.
 
+The stable `v0.2.1` wheel is the 2026-10-23 snapshot
+`326cf932560abe179fa97a9c1327b6d324a29fcf`. Later `main` capacity limits,
+local 503 responses and recovery checks are not included in that download.
+The source QuickStart below pins the 2026-10-30 tested `main` snapshot instead;
+it does not create or rename a package Release.
+
 ## Reproduce in about five minutes
 
-Use Python 3.10, 3.12 or 3.13. Clone the repository and run from its root:
+Use Python 3.10, 3.12 or 3.13. From a fresh directory:
 
 ```sh
+git clone https://github.com/zhouey314-cloud/relay-audit.git
+cd relay-audit
+git checkout --detach f8d7376d7593925cb420fd670deef3b0d33f5a19
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r requirements.lock

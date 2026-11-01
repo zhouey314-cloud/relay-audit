@@ -9,7 +9,7 @@
 
 Agent → 本地网关 → 用户指定的中转 API。正常聊天、写代码、工具调用继续进行；网关被动观察模型声明、协议完整性和服务变化，自动发出独立提醒与本地证据报告。
 
-当前版本 **0.2.1**。默认 `passive`，**额外模型请求为零**。**真实模型身份校准尚未完成：标签和全部可见行为相同的隐藏换模无法验证；本项目不承诺识别所有替换，也没有经过校准的准确率。**
+稳定发行版本为 **0.2.1**；当前 `main` 另有后续工程改动，安装路径见下方。默认 `passive`，**额外模型请求为零**。**真实模型身份校准尚未完成：标签和全部可见行为相同的隐藏换模无法验证；本项目不承诺识别所有替换，也没有经过校准的准确率。**
 
 ## 稳定演示与下载
 
@@ -17,19 +17,33 @@ Agent → 本地网关 → 用户指定的中转 API。正常聊天、写代码�
 - [v0.2.1 安装包、合成演示与 SHA256](https://github.com/zhouey314-cloud/relay-audit/releases/tag/v0.2.1)：下载 wheel 后在独立环境 `python -m pip install ./relay_audit_lite-0.2.1-py3-none-any.whl`，运行 `relay-audit guard demo --out demo-001`。
 - [发行范围与验证方式](docs/RELEASE_NOTES_0.2.1.md)：重复 Connection 头过滤、监测降级期间的真实传输结果保留；没有修改模型检测规则或宣称真实模型校准通过。
 
+**下载包与当前源码的区别：** `v0.2.1` 固定在2026-10-23的 `326cf932560abe179fa97a9c1327b6d324a29fcf`。2026-10-30合并到 `main` 的在途容量、503与恢复检查不在这个旧 wheel 中。要复现这些能力，请使用下面固定源码的 QuickStart；本次没有发布含这些改动的新 wheel，也没有覆盖旧 tag 或资产。
+
 Actions 工件继续作为每次 CI 的测试证据，并有保留期限；上面的版本报告和 Release 下载是长期演示入口。旧 v0.2.0 标签和资产保留。
 
-## 无真实 Key 的演示
+## 源码 QuickStart：无真实 Key 的演示
 
-Python 3.10+；使用独立虚拟环境：
+Python 3.10+；从新目录 clone，检出2026-10-30已通过CI的源码，再使用独立虚拟环境：
 
 ```bash
+git clone https://github.com/zhouey314-cloud/relay-audit.git
+cd relay-audit
+git checkout --detach f8d7376d7593925cb420fd670deef3b0d33f5a19
 python3 -m venv .venv
-source .venv/bin/activate
+. .venv/bin/activate
 python -m pip install -r requirements.lock
 python -m pip install --no-deps --no-build-isolation -e .
 relay-audit guard demo --out agentguard-demo/run-001
 ```
+
+在此 checkout 中，`relay-audit guard --help` 查看命令；[容量说明](docs/CAPACITY.md)解释 `max_inflight_requests` 和503。可用以下命令运行固定协议/容量回归和一次纯合成比较，输出目录须全新：
+
+```bash
+python -m unittest discover -s tests -p 'test_guard_proxy.py' -v
+python evals/run_acceptance.py --out acceptance-source-001 --requests 30 --concurrency 4
+```
+
+第一次安装依赖需要网络，演示与上述验收只访问 loopback 和假凭证。固定源码安装仍使用历史0.2.1包元数据；这不代表它与已发布0.2.1 wheel 字节相同。当前工作树中的改动和后续 `main` 需要各自验证。
 
 演示启动本机模拟 Agent 与模拟中转：正常调用 → 标签改变 → 自动终端告警和 Markdown 报告 → 第三次调用继续完成。目录必须新建。所有模拟素材与期望结果标为 `synthetic_unverified`，不代表识别过真实中转站。
 

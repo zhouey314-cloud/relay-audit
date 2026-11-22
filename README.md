@@ -1,15 +1,20 @@
 # RelayAudit · AgentGuard
 
-帮助 AI 应用开发者把“调用异常”拆成能排查的问题：连接、HTTP 状态、SSE 结束、超时、取消和可见标签变化。我的实现包括固定路由代理、独立观察队列、凭据隔离、运行容量控制和本地证据报告。
+**本地 AI API 观测网关。** 当 Agent 请求失败，或返回 HTTP 200 却有异常时，用一份证据报告区分 HTTP/SSE、超时、取消、网关过载和上游自报标签变化。Agent 通过本地网关访问你指定的上游；网关把转发与观察分开，默认被动观察，不额外调用模型。
 
-[容量、过载与运行排查](docs/CAPACITY.md) · [协议契约](docs/PROTOCOLS.md)
+*Local HTTP/SSE observability for AI API calls, with metadata-only incident reports.*
 
+[查看合成报告](examples/guard-synthetic/report.md) · [运行本机演示](#源码-quickstart无真实-key-的演示) · [容量与排查](docs/CAPACITY.md) · [协议契约](docs/PROTOCOLS.md)
 
-**接入 Agent 请求链路，持续监测并自动告警。**
+**先看一条真实的合成测试记录。** 三次模拟请求均返回 HTTP 200；第二次响应自报标签 `mock-other`，超出请求标签 `mock-model` 的允许映射，触发独立告警，第三次仍完成。[报告](examples/guard-synthetic/report.md)记录差异和请求 ID；[摘要](examples/guard-synthetic/summary.json)记录 3 次转发、0 次额外模型请求及告警后请求成功。它验证的是可观察标签和告警链路，**不是模型身份验证**。
 
-Agent → 本地网关 → 用户指定的中转 API。正常聊天、写代码、工具调用继续进行；网关被动观察模型声明、协议完整性和服务变化，自动发出独立提醒与本地证据报告。
+| 想验证什么 | 从这里开始 |
+| --- | --- |
+| 不安装，核对一次告警 | [打开报告](examples/guard-synthetic/report.md)，对照[运行摘要](examples/guard-synthetic/summary.json) |
+| 在本机复现，不用真实 Key | 按下面的源码 QuickStart 运行，查看新目录中的 `summary.json` 和 `report.md` |
+| 核对工程验收及版本范围 | [固定源码的三版本 CI](https://github.com/zhouey314-cloud/relay-audit/actions/runs/41287874474) · [v0.2.1 稳定下载](https://github.com/zhouey314-cloud/relay-audit/releases/tag/v0.2.1)（不含后增的容量检查） |
 
-稳定发行版本为 **0.2.1**；当前 `main` 另有后续工程改动，安装路径见下方。默认 `passive`，**额外模型请求为零**。**真实模型身份校准尚未完成：标签和全部可见行为相同的隐藏换模无法验证；本项目不承诺识别所有替换，也没有经过校准的准确率。**
+真实模型身份未校准；无法验证标签和所有可见行为都相同的替换。此处的合成证据不证明真实上游身份或生产容量。
 
 ## 稳定演示与下载
 
@@ -23,12 +28,12 @@ Actions 工件继续作为每次 CI 的测试证据，并有保留期限；上�
 
 ## 源码 QuickStart：无真实 Key 的演示
 
-Python 3.10+；从新目录 clone，检出2026-10-30已通过CI的源码，再使用独立虚拟环境：
+Python 3.10+；从新目录克隆，检出[已通过离线 CI 的源码快照](https://github.com/zhouey314-cloud/relay-audit/actions/runs/41287874474)，再使用独立虚拟环境：
 
 ```bash
 git clone https://github.com/zhouey314-cloud/relay-audit.git
 cd relay-audit
-git checkout --detach f8d7376d7593925cb420fd670deef3b0d33f5a19
+git checkout --detach e222f684be89697c9d44d0c11626780a43fcd53b
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r requirements.lock
